@@ -57,3 +57,10 @@ struct sync_message
 			<< std::endl;
 	}
 };
+
+
+// Helper function. error && exit.
+void error(const char *msg) {
+	perror(msg);
+	exit(1);
+}

@@ -2,6 +2,8 @@
 // usage: server <port>
 
 #include <iostream>
+#include <iomanip>
+#include <fstream>
 #include <thread>
 #include <atomic>
 #include <ctime>
@@ -33,12 +35,25 @@ auto g_starttime = Clock::now();
 int ticking_thread()
 {
 	g_starttime = Clock::now();
+
+#define DEBUG
+#ifdef DEBUG
+	// Write server epoch to secret file for client to benchmark.
+	std::ofstream secret_file;
+	secret_file.open("secret.txt");
+	secret_file << g_starttime.time_since_epoch().count();
+	secret_file.close();
+#endif
+
+	uint64_t last = 0;
 	while (1) {
 		// timestamp in ns, for debugging purpose.
-		std::cout << Clock::now().time_since_epoch().count() << ": ";
+		uint64_t now = Clock::now().time_since_epoch().count();
+		std::cout << "[" << now << ", after " << std::setw(7) << (now - last) / 1000 << " us]: ";
+		last = now;
 
 		// output 1->10 as required.
-		std::cout << (g_ticks.load() % 10) + 1 << std::endl;
+		std::cout << (g_ticks % 10) + 1 << std::endl;
 		g_ticks++;
 		std::this_thread::sleep_until(g_starttime + std::chrono::seconds(g_ticks));
 	}
@@ -46,11 +61,6 @@ int ticking_thread()
 	return 0;
 }
 
-// error && exit.
-void error(const char *msg) {
-	perror(msg);
-	exit(1);
-}
 
 int main(int argc, char **argv) 
 {
@@ -102,7 +112,7 @@ int main(int argc, char **argv)
 
 		msg.ntoh();
 
-		// Set timestampe t2 -- time receiving of ping
+		// Set timestamp t2 -- time receiving of ping
 		msg.t2 = Clock::now().time_since_epoch().count();
 
 		// Determine who sent the datagram
@@ -133,7 +143,7 @@ int main(int argc, char **argv)
 		//	      << ", diff="<<(next_firing - now).count() << std::endl;
 		msg.time_to_fire = (next_firing - now).count();
 
-		// Set timestampe t3 -- time sending pong. 
+		// Set timestamp t3 -- time sending pong. 
 		msg.t3 = Clock::now().time_since_epoch().count();
 
 		msg.hton();
