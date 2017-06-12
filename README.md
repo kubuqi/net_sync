@@ -1,5 +1,5 @@
 # net_sync
-synchronize actions over network, without using NTP.
+Synchronize actions over network, without using NTP.
 
 
 ## Protocol
@@ -26,8 +26,23 @@ Upon receiving the response, the client can roughly calculate the time of next s
 time_to_fire = now - one_way_network_delay + msg.time_to_fire;
 
 ## Server
-There are two threads, one simply sleep and fire the events, the other respond to UDP requests.
+There are two threads, one ticking thread simply sleep and fire the output, the other (main thread) listen and respond to UDP requests.
 
 
 ## Client
-Only one thread at moment. It send request to server, wait for response, and calculate the time of server event, do the output, and then sleep.
+Similar to the design of server, two threads coorperate to get the job done. The ticking thread schedule itself and fire the output, and the main thread will be responsible for talking to server and try calculate out the time when server started. Obviously if the client can calculate the time point when the server starts to output, it can predict when will server do the next output, and do it from client side at that exact time.
+
+## Testing
+Testing was done by running the client and server on same host, and setup the communication through loopback interface. The network latency was emulated with netem as suggested.
+
+To benchmark the accuracy, server will dump the timestamp it started to a text file, and client will read in this timestamp, and compare it with the calculated one based on the result from UDP request. Because both programs were running on same host, their clock would be the same, and the difference would reveal the error from the algorythm of the choice.
+
+## Futher enhancements
+Currently the client simply adjust its epoch timestamp (the time when server started its first output) with the calculated result from each response, and it is deem to be influnced by the network jitter. This can be improved by employing some sort of filters.  Moving average and kalman filter are the two that should be considered.
+
+
+
+
+
+
+
